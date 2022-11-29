@@ -4,12 +4,12 @@ const { signToken } = require('../utils/auth');
 
 const resolvers = {
     Query: {
-        me: async (parent, args, context) => {
+        me: async (_parent, _args, context) => {
             if (context.user) {
                 const userData = await User
                     .findOne({ _id: context.user._id })
-                    .select('-__v - password')
-                    .populate('savedBooks');
+                    .select('-__v - password');
+
                 return userData;
             };
             throw new AuthenticationError('You shall not pass...without logging in!');
@@ -17,7 +17,7 @@ const resolvers = {
     },
 
     Mutation: {
-        login: async (parent, { email, password }) => {
+        login: async (_parent, { email, password }) => {
             const user = await User.findOne({ email });
             if (!user) {
                 throw new AuthenticationError('Do you even go here?');
@@ -31,26 +31,24 @@ const resolvers = {
             const token = signToken(user);
             return { token, user };
         },
-        addUser: async (parent, { username, email, password }) => {
+        addUser: async (_parent, { username, email, password }) => {
             const user = await User.create({ username, email, password });
             const token = signToken(user);
 
             return { token, user };
         },
-        saveBook: async (parent, { bookData }, context) => {
+        saveBook: async (_parent, { userId, bookData }, context) => {
             if (context.user) {
-                const userUpdate = await User
+                return User
                     .findOneAndUpdate(
-                        { _id: context.user._id },
+                        { _id: userId },
                         { $addToSet: { savedBooks: bookData } },
-                        { new: true },
+                        { new: true, runValidators: true },
                     )
-                    .populate('savedBooks');
-                return userUpdate;
             };
             throw new AuthenticationError('No books for you! Unless you log in!');
         },
-        removeBook: async (parent, { bookId }, context) => {
+        removeBook: async (_parent, { bookId }, context) => {
             if (context.user) {
                 const userUpdate = await User.findOneAndUpdate(
                     { _id: context.user._id },
