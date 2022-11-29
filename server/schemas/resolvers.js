@@ -4,7 +4,7 @@ const { signToken } = require('../utils/auth');
 
 const resolvers = {
     Query: {
-        me: async (_parent, _args, context) => {
+        me: async (parent, args, context) => {
             if (context.user) {
                 const userData = await User
                     .findOne({ _id: context.user._id })
@@ -17,7 +17,7 @@ const resolvers = {
     },
 
     Mutation: {
-        login: async (_parent, { email, password }) => {
+        login: async (parent, { email, password }) => {
             const user = await User.findOne({ email });
             if (!user) {
                 throw new AuthenticationError('Do you even go here?');
@@ -37,14 +37,15 @@ const resolvers = {
 
             return { token, user };
         },
-        saveBook: async (_parent, { userId, bookData }, context) => {
+        saveBook: async (parent, { bookData }, context) => {
             if (context.user) {
-                return User
+                const updatedUser = await User
                     .findOneAndUpdate(
-                        { _id: userId },
+                        { _id: context.user._Id },
                         { $addToSet: { savedBooks: bookData } },
-                        { new: true, runValidators: true },
+                        { new: true },
                     )
+                return updatedUser;
             };
             throw new AuthenticationError('No books for you! Unless you log in!');
         },
@@ -52,7 +53,7 @@ const resolvers = {
             if (context.user) {
                 const userUpdate = await User.findOneAndUpdate(
                     { _id: context.user._id },
-                    { $pull: { savedBooks: { bookId } } },
+                    { $pull: { savedBooks: { bookId: bookId } } },
                     { new: true }
                 );
                 return userUpdate;
